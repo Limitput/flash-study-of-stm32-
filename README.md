@@ -1,17 +1,21 @@
+
 # flash-study-of-stm32，此为学习stm32 的 bootloader的前置学习，先掌握flash的应用（读写擦）
 ## 首先试一下内部flash
-先查找最大存储地址，例如0x0800FFE0
-        #define FLASH_SAVE_ADDRESS 0x0800FF00
-        static FLASH_EraseInitTypeDef EraseInitStruct = {
-            .TypeErase /*擦除类型*/= FLASH_TYPERESS_PAGES,//页擦除
-            .PageAddress = FLASH_SAVE_ADDRESS,//擦除地址
-            .NbPages = 1// 擦除页数
-        }
-
+先查找**最大**存储地址，例如0x0800FFE0
+```
+ #define FLASH_SAVE_ADDRESS 0x0800FF00
+ static FLASH_EraseInitTypeDef EraseInitStruct = 
+ {
+     .TypeErase /*擦除类型*/= FLASH_TYPERESS_PAGES,//页擦除
+     .PageAddress = FLASH_SAVE_ADDRESS,//擦除地址
+     .NbPages = 1// 擦除页数
+ }
+```
 接下来是具体的写入规范
-    1、先清除要写入东西的部分，不能够直接覆盖
-    2、擦除之前要先解锁flash
-    3、擦除前要关闭中断，不然会出意外
+   1. 先清除要写入东西的部分，不能够直接覆盖
+   2. 擦除之前要先解锁flash
+   3. 擦除前要关闭中断，不然会出意外
+        
         对于第3点，gpt是这样形容的
         在擦除Flash之前要关闭中断，这是为了保障数据完整性和系统稳定性。具体原因如下：
 
@@ -24,27 +28,36 @@
         安全性考虑
         有些嵌入式系统或MCU在Flash擦除过程中会暂时无法执行从Flash读出来的代码（这时程序一般运行在RAM）。如果发生中断，而中断服务程序在Flash中，反而会因为代码无法正常取指，直接导致系统异常。
 
-    HAL_FLASH_Unlock();//解锁flash
+```
+	 HAL_FLASH_Unlock();//解锁flash
 
-    uint32_t PageError = 0;
-    __disable_irq();//关闭中断
+	 uint32_t PageError = 0;
+	 __disable_irq();//关闭中断
 
-    if(HAL_FLASHEx_Erase(&EraseInitStruct,&PageError) == HAL_OK)
-    {
-        printf("erase ok");
-    }
+	 if(HAL_FLASHEx_Erase(&EraseInitStruct,&PageError) == HAL_OK)
+	 {
+	     printf("erase ok");
+	 }
 
-    __enable_irq();//打开中断
+	 __enable_irq();//打开中断
 
-    uint32_t data = 0x55556666;
-    uint32_t addr = FLASH_SAVE_ADDR;
-    HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD/*此应该是写入的数据类型*/,addr,data);//值得注意的是，单片机通常小端存储，即按序存入后的数据为0x66665555
-    
-    HAL_FLASH_Lock();//flash上锁
-# 待测试的一点是再读出来后是66665555还是55556666
+	 uint32_t data = 0x55556666;
+	 uint32_t addr = FLASH_SAVE_ADDR;
+	 HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD/*此应该是写入的数据类型*/,addr,data);
+	 //值得注意的是，单片机通常小端存储，即按序存入后的数据为0x66665555
+	 
+	 HAL_FLASH_Lock();//flash上锁
+```
+
+** 待测试的一点是再读出来后是66665555还是55556666**
 
 
 
 
 ## 接下来是外部flash
-1
+前置知识qspi（f1，f407未找到），专用于对接外部flash，配合dma无敌。**这里学习**[STM32L4+HAL+QSPI+DMA读写W25Q64/128](https://www.freesion.com/article/11821562315/)
+###  SPI应用
+spi的cs引脚低电平时有效
+读取主要来自w25q64，一般用stlink等等的东西写入后，由单片机读出
+写入一般为字库、图片、lvgl等数据
+**待应用**
